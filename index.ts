@@ -156,6 +156,15 @@ new aws.cloudwatch.MetricAlarm("payment-queue-age-alarm", {
 });
 
 // ---------------------------------------------------------------------------
+// Staging assets
+// ---------------------------------------------------------------------------
+
+// Where the payments team stages report exports before publishing. No
+// versioning: an overwritten export is gone. (The Linear ticket in the
+// workshop's "ask" demo asks for exactly that one-line fix.)
+const stagingBucket = new aws.s3.Bucket("payments-staging", {});
+
+// ---------------------------------------------------------------------------
 // The database behind the service
 // ---------------------------------------------------------------------------
 
@@ -182,3 +191,4 @@ export const dlqArn = dlq.arn;
 export const alarmName = dlqAlarm.name;
 export const dbIdentifier = db.identifier;
 export const pagerdutyServiceUrl = paymentService.htmlUrl;
+export const stagingBucketName = stagingBucket.bucket;
