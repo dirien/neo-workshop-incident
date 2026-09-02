@@ -1,0 +1,10 @@
+{
+  "name": "neo-workshop-incident",
+  "main": "index.ts",
+  "devDependencies": { "@types/node": "^22", "typescript": "^5.6" },
+  "dependencies": {
+    "@pulumi/aws": "^6.0.0",
+    "@pulumi/pagerduty": "^4.0.0",
+    "@pulumi/pulumi": "^3.0.0"
+  }
+}
