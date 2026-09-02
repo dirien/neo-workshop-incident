@@ -1,0 +1,11 @@
+name: neo-workshop-readonly-role
+runtime: nodejs
+description: >-
+  The narrow IAM role the workshop's `aws` CLI integration runs as. Read-only, and
+  trusted only by Pulumi Cloud's OIDC issuer for this organization.
+config:
+  aws:region:
+    default: ca-central-1
+  neo-workshop-readonly-role:pulumiOrg:
+    description: Pulumi organization login, used as the OIDC audience.
+    default: adamgordonbell-org
