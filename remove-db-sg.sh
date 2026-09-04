@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Detach and delete the out-of-band security group created by
-# ./create-unmanaged.sh. Safe to run repeatedly.
+# Detach and delete the security group created by ./add-db-sg.sh.
+# Safe to run repeatedly.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -42,7 +42,7 @@ echo "Deleting $SG_ID..."
 # group, so the first delete can fail with DependencyViolation. Retry for ~3 min.
 for i in $(seq 1 18); do
     if aws ec2 delete-security-group --group-id "$SG_ID" --no-cli-pager 2>/dev/null; then
-        echo "Removed. Re-create with ./create-unmanaged.sh"
+        echo "Removed. Re-create with ./add-db-sg.sh"
         exit 0
     fi
     echo "  still attached to a network interface; retrying in 10s ($i/18)"

@@ -36,6 +36,6 @@ else
     echo "No pagerduty:token in stack config; resolve any open incident in the PagerDuty UI."
 fi
 
-# Put the out-of-band security group back the way it was, so the next rehearsal
-# starts from a clean account. Re-arm with ./create-unmanaged.sh.
-"$SCRIPT_DIR/remove-unmanaged.sh"
+# Remove the extra security group so the next run starts from the same place.
+# Re-arm with ./add-db-sg.sh.
+"$SCRIPT_DIR/remove-db-sg.sh"

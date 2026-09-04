@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
-# Create the resource that no Pulumi program describes.
-#
-# This stands in for "somebody opened the console at 2am during an incident and
-# never came back". It is created with the raw AWS CLI on purpose: nothing in
-# demo/pulumi-ts mentions it, so it exists in the account and not in state.
-#
-# That is the whole point. Neo cannot find this by reading the program. It can
-# only find it by running `aws` against the live account -- which is what a CLI
-# integration is for.
-#
-# Run this BEFORE the session, during setup. Not live.
+# Attach an extra security group to the payments database with the aws CLI.
+# Run before the session, not live. ./remove-db-sg.sh takes it away again.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -28,11 +19,11 @@ echo "  existing security groups: $EXISTING_SGS"
 if aws ec2 describe-security-groups --filters "Name=group-name,Values=$SG_NAME" \
     "Name=vpc-id,Values=$VPC_ID" --query 'SecurityGroups[0].GroupId' \
     --output text 2>/dev/null | grep -q '^sg-'; then
-    echo "Already exists. Nothing to do -- run ./remove-unmanaged.sh first to recreate."
+    echo "Already exists. Nothing to do -- run ./remove-db-sg.sh first to recreate."
     exit 0
 fi
 
-echo "Creating the security group out-of-band..."
+echo "Creating the security group..."
 SG_ID=$(aws ec2 create-security-group \
     --group-name "$SG_NAME" \
     --vpc-id "$VPC_ID" \
@@ -65,4 +56,4 @@ echo "It allows 0.0.0.0/0 on tcp/5432, and no Pulumi program mentions it."
 echo "Confirm Pulumi does not know about it:"
 echo "    pulumi stack --show-urns | grep -i security   # expect nothing"
 echo
-echo "Undo with ./remove-unmanaged.sh"
+echo "Undo with ./remove-db-sg.sh"

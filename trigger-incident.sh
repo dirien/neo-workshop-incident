@@ -7,12 +7,8 @@
 # dead-letter queue, the alarm goes red, SNS notifies PagerDuty, and an
 # incident opens.
 #
-# Timing, MEASURED (2026-09-02): send → DLQ in 13s, but send → incident open
-# took 2m53s — SQS publishes its CloudWatch metrics at ~1-minute granularity,
-# so the 60s alarm period doesn't help. Budget a full 3 minutes from running
-# this to the page. (Engin's original at maxReceiveCount 3 took 3m45s.)
-#
-# ⇒ RUN THIS DURING THE PREVIOUS BEAT, not at the top of the incident beat.
+# Budget about 3 minutes from running this to the page: SQS publishes its
+# CloudWatch metrics at roughly one-minute granularity.
 set -euo pipefail
 cd "$(dirname "$0")"
 
