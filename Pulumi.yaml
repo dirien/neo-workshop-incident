@@ -6,8 +6,8 @@ description: >-
   PagerDuty service that pages off it. Carries deliberate configuration faults —
   see FINDINGS.md.
 config:
-  # pagerduty:token is set per-stack: pulumi config set --secret pagerduty:token
+  # pagerduty:token and pagerdutyEmail come from the stack's ESC environment (Pulumi.dev.yaml).
   neo-workshop-incident:pagerdutyEmail:
     description: Email for the PagerDuty users this program creates. Must be on a domain your account accepts.
   aws:region:
-    value: ca-central-1
+    value: eu-central-1

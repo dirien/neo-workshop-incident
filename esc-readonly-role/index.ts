@@ -14,17 +14,14 @@ import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 
 const cfg = new pulumi.Config();
-const org = cfg.get("pulumiOrg") ?? "adamgordonbell-org";
+const org = cfg.get("pulumiOrg") ?? "ediri";
 
-// Pulumi Cloud's OIDC issuer. If the account already federates with Pulumi (this
-// one does, for `shared/cloud-creds`), the provider exists — import it rather
-// than creating a duplicate:
-//   pulumi import aws:iam/openIdConnectProvider:OpenIdConnectProvider pulumi \
-//     arn:aws:iam::<account>:oidc-provider/api.pulumi.com/oidc
-const provider = new aws.iam.OpenIdConnectProvider("pulumi", {
-    url: "https://api.pulumi.com/oidc",
-    clientIdLists: [org],
-    thumbprintLists: ["9e99a48a9960b14926bb7f3b02e22da2b0ab7280"],
+// Pulumi Cloud's OIDC issuer. In a shared account the provider already exists and
+// carries many orgs' audiences, so look it up: creating or importing it here would
+// let this stack overwrite that audience list.
+const accountId = aws.getCallerIdentityOutput().accountId;
+const provider = aws.iam.getOpenIdConnectProviderOutput({
+    arn: pulumi.interpolate`arn:aws:iam::${accountId}:oidc-provider/api.pulumi.com/oidc`,
 });
 
 const role = new aws.iam.Role("neo-workshop-readonly", {
@@ -40,7 +37,8 @@ const role = new aws.iam.Role("neo-workshop-readonly", {
                 Action: "sts:AssumeRoleWithWebIdentity",
                 Condition: {
                     StringEquals: {
-                        [`${url.replace("https://", "")}:aud`]: org,
+                        // ESC's aws-login presents `aws:<org>` as the audience.
+                        [`${url.replace("https://", "")}:aud`]: [org, `aws:${org}`],
                     },
                 },
             }],
@@ -73,7 +71,7 @@ export const roleArn = role.arn;
  *       AWS_ACCESS_KEY_ID: ${aws.login.accessKeyId}
  *       AWS_SECRET_ACCESS_KEY: ${aws.login.secretAccessKey}
  *       AWS_SESSION_TOKEN: ${aws.login.sessionToken}
- *       AWS_REGION: ca-central-1
+ *       AWS_REGION: eu-central-1
  *
  * Then verify it is genuinely narrower than the laptop, which is the point:
  *   pulumi env run <ref> -- aws sts get-caller-identity
