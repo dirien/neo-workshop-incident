@@ -142,10 +142,17 @@ new aws.cloudwatch.MetricAlarm("payment-queue-age-alarm", {
 // Staging assets
 // ---------------------------------------------------------------------------
 
-// Where the payments team stages report exports before publishing. No
-// versioning: an overwritten export is gone. (The Linear ticket in the
-// workshop's "ask" demo asks for exactly that one-line fix.)
+// Where the payments team stages report exports before publishing.
+// Versioning is enabled so an overwritten export can be recovered.
+// (ENG-5: https://linear.app/engin-diri/issue/ENG-5)
 const stagingBucket = new aws.s3.Bucket("payments-staging", {});
+
+new aws.s3.BucketVersioningV2("payments-staging", {
+    bucket: stagingBucket.id,
+    versioningConfiguration: {
+        status: "Enabled",
+    },
+});
 
 // ---------------------------------------------------------------------------
 // The database behind the service
