@@ -13,6 +13,8 @@ import * as pulumi from "@pulumi/pulumi";
 
 const cfg = new pulumi.Config();
 const contactEmail = cfg.get("pagerdutyEmail") ?? "workshop@example.com";
+// EU-region PagerDuty accounts take events on events.eu.pagerduty.com.
+const eventsHost = cfg.get("pagerdutyEventsHost") ?? "events.pagerduty.com";
 
 // ---------------------------------------------------------------------------
 // On-call: who gets woken up
@@ -23,11 +25,9 @@ const team = new pagerduty.Team("platform-team", {
     description: "Owns the payment pipeline for the Sep 8 workshop demo.",
 });
 
-const onCall = new pagerduty.User("workshop-oncall", {
-    name: "Workshop On-Call",
-    email: contactEmail,
-    role: "user",
-});
+// The on-call person already has a login in this PagerDuty account, so look them
+// up instead of creating a second user with the same email.
+const onCall = pagerduty.getUserOutput({ email: contactEmail });
 
 new pagerduty.TeamMembership("oncall-platform", {
     userId: onCall.id,
@@ -89,7 +89,7 @@ const alarmTopic = new aws.sns.Topic("payment-alarms", {});
 new aws.sns.TopicSubscription("payment-alarms-to-pagerduty", {
     topic: alarmTopic.arn,
     protocol: "https",
-    endpoint: pulumi.interpolate`https://events.pagerduty.com/integration/${cloudwatchIntegration.integrationKey}/enqueue`,
+    endpoint: pulumi.interpolate`https://${eventsHost}/integration/${cloudwatchIntegration.integrationKey}/enqueue`,
     endpointAutoConfirms: true,
 });
 
