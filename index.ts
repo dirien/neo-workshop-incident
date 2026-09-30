@@ -104,9 +104,16 @@ const dlq = new aws.sqs.Queue("payment-dlq", {
 const paymentQueue = new aws.sqs.Queue("payment-queue", {
     redrivePolicy: pulumi.jsonStringify({
         deadLetterTargetArn: dlq.arn,
-        maxReceiveCount: 1,
+        // A maxReceiveCount of 1 dead-lettered every message after a single
+        // failed receive, including ordinary transient consumer delays, with
+        // no retry margin. 3 attempts gives a real consumer room to recover
+        // before a message is treated as poison.
+        maxReceiveCount: 3,
     }),
-    visibilityTimeoutSeconds: 5,
+    // Long enough for a legitimate consumer to finish processing (and, at 30s,
+    // in line with SQS's own default) before the message becomes visible
+    // again and counts as another receive attempt.
+    visibilityTimeoutSeconds: 30,
 });
 
 const dlqAlarm = new aws.cloudwatch.MetricAlarm("payment-dlq-alarm", {
@@ -151,6 +158,33 @@ const stagingBucket = new aws.s3.Bucket("payments-staging", {});
 // The database behind the service
 // ---------------------------------------------------------------------------
 
+// The instance previously didn't set vpcSecurityGroupIds, so AWS attached the
+// VPC's default security group and nothing in the program owned that
+// decision. That let an unmanaged, internet-facing security group
+// ("payments-db-emergency-access", tcp/5432 from 0.0.0.0/0) sit attached to
+// the database without Pulumi ever detecting the drift. Declaring the
+// group explicitly here gives Pulumi authority over what's attached, so an
+// out-of-band group like that shows up — and is removed — on the next update.
+const defaultVpc = aws.ec2.getVpcOutput({ default: true });
+
+const dbSecurityGroup = new aws.ec2.SecurityGroup("payments-db-access", {
+    description: "Postgres access for the payments database, scoped to the VPC.",
+    vpcId: defaultVpc.id,
+    ingress: [{
+        description: "Postgres from within the VPC",
+        protocol: "tcp",
+        fromPort: 5432,
+        toPort: 5432,
+        cidrBlocks: [defaultVpc.cidrBlock],
+    }],
+    egress: [{
+        protocol: "-1",
+        fromPort: 0,
+        toPort: 0,
+        cidrBlocks: ["0.0.0.0/0"],
+    }],
+});
+
 const db = new aws.rds.Instance("payments-db", {
     engine: "postgres",
     instanceClass: "db.t4g.micro",
@@ -162,6 +196,7 @@ const db = new aws.rds.Instance("payments-db", {
     skipFinalSnapshot: true,
     applyImmediately: true,
     publiclyAccessible: false,
+    vpcSecurityGroupIds: [dbSecurityGroup.id],
 });
 
 export const paymentQueueUrl = paymentQueue.url;
